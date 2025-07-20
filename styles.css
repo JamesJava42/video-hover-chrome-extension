@@ -1,0 +1,133 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f7f9;
+    width: 320px;
+    margin: 0;
+    padding: 16px;
+    color: #333;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.logo {
+    width: 32px;
+    height: 32px;
+    margin-right: 12px;
+}
+
+h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #1a202c;
+}
+
+.instructions {
+    font-size: 14px;
+    color: #5a677d;
+    margin-bottom: 8px;
+    line-height: 1.5;
+    align-self: flex-start;
+}
+
+.video-library {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+}
+
+.video-thumb {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.video-thumb:hover {
+    transform: scale(1.05);
+}
+
+.video-thumb.selected {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+}
+
+.input-group {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+#videoUrlInput {
+    width: 95%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#videoUrlInput:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#selectElementBtn {
+    background-color: #007bff;
+}
+
+#selectElementBtn:hover {
+    background-color: #0056b3;
+}
+
+#autoScanBtn {
+    background-color: #6B21A8;
+}
+
+#autoScanBtn:hover:not(:disabled) {
+    background-color: #581C87;
+}
+
+button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.divider {
+    height: 1px;
+    width: 100%;
+    background-color: #d1d5db;
+    margin: 20px 0;
+}

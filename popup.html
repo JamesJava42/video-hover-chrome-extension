@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Hover</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="logo.png" alt="Logo" class="logo">
+            <h1>Video Hover</h1>
+        </div>
+        <p class="instructions">Select a video, then click the button to apply a hover effect to any element on the page.</p>
+        <div class="video-library">
+            <img class="video-thumb" src="images/thumb1.jpg" data-video-url="https://www.w3schools.com/html/mov_bbb.mp4" aria-label="Select video 1">
+            <img class="video-thumb" src="images/thumb2.jpg" data-video-url="https://www.w3schools.com/html/movie.mp4" aria-label="Select video 2">
+        </div>
+        <div class="input-group">
+            <input type="text" id="videoUrlInput" placeholder="Or paste a video URL">
+        </div>
+        <button id="selectElementBtn">Apply to Clicked Element</button>
+        <div class="divider"></div>
+        <button id="autoScanBtn" disabled>Auto-Scan (Coming Soon)</button>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
