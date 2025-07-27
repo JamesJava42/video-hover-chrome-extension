@@ -1,6 +1,6 @@
 // Ensure the script is injected only once
-if (typeof window.videoHoverManual === 'undefined') {
-    window.videoHoverManual = (function() {
+if (typeof window.videoHoverApplied === 'undefined') {
+    window.videoHoverApplied = (function() {
 
         /**
          * Injects all necessary CSS into the page head.
@@ -11,17 +11,17 @@ if (typeof window.videoHoverManual === 'undefined') {
             const style = document.createElement('style');
             style.id = styleId;
             style.innerHTML = `
-                .manual-enhanced-element { 
+                .video-hover-enhanced { 
                     position: relative; 
                     overflow: hidden; 
                     transition: transform 0.3s ease, box-shadow 0.3s ease; 
                     cursor: pointer; 
                 }
-                .manual-enhanced-element:hover { 
+                .video-hover-enhanced:hover { 
                     transform: scale(1.03); 
                     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
                 }
-                .manual-enhanced-element .video-overlay {
+                .video-hover-enhanced .video-overlay {
                     width: 100%; 
                     height: 100%; 
                     object-fit: cover; 
@@ -33,7 +33,7 @@ if (typeof window.videoHoverManual === 'undefined') {
                     transition: opacity 0.4s ease-in-out; 
                     z-index: 1;
                 }
-                .manual-enhanced-element:hover .video-overlay {
+                .video-hover-enhanced:hover .video-overlay {
                     opacity: 1;
                 }
             `;
@@ -41,24 +41,60 @@ if (typeof window.videoHoverManual === 'undefined') {
         }
 
         /**
-         * Applies a video hover effect by targeting the element's existing container.
-         * This is a more robust method for complex websites like those built with Elementor.
+         * Generates a unique and stable CSS selector for a given element.
          */
-        function applyHoverVideo(targetElement, videoUrl) {
-            if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('http')) {
-                console.error("Video Hover Error: An invalid video URL was provided.");
-                alert("Video Hover Error: Could not apply effect because an invalid video URL was provided.");
+        function getSelector(element) {
+            if (element.id) return `#${element.id}`;
+            let path = [];
+            while (element.parentElement) {
+                let sibling = element;
+                let count = 1;
+                while (sibling.previousElementSibling) {
+                    sibling = sibling.previousElementSibling;
+                    count++;
+                }
+                let selector = element.tagName.toLowerCase();
+                if (element.className) {
+                    const stableClass = Array.from(element.classList).find(c => !c.includes(':'));
+                    if (stableClass) selector += `.${stableClass}`;
+                }
+                selector += `:nth-child(${count})`;
+                path.unshift(selector);
+                element = element.parentElement;
+                if (element.id) {
+                    path.unshift(`#${element.id}`);
+                    break;
+                }
+            }
+            return path.join(' > ');
+        }
+
+        /**
+         * Applies a video hover effect to the target element.
+         */
+        function applyHoverVideo(targetElement, videoUrl, shouldSave = false) {
+            const isDirectVideoLink = /\.(mp4|webm|ogg)(\?.*)?$/i.test(videoUrl);
+            if (!isDirectVideoLink) {
+                alert('Invalid URL:\nThis link is not a direct video file (.mp4, .webm, .ogg).\n\nLinks to YouTube pages or other websites cannot be played directly.');
                 return;
             }
 
-            // **CRITICAL FIX**: Instead of creating a new wrapper, we find the existing one.
-            // For Elementor sites, '.elementor-widget-container' is a reliable choice.
-            const container = targetElement.closest('.elementor-widget-container');
+            const voidElements = ['IMG', 'INPUT', 'VIDEO', 'IFRAME'];
+            let container = targetElement;
+            let originalElement = targetElement;
 
-            if (!container) {
-                console.error("Video Hover Error: Could not find a suitable container for the selected element.");
-                alert("Could not apply effect: A suitable container was not found.");
-                return;
+            // ✅ **THE FIX:** If the target is an element that can't have children (like an <img>),
+            // we create a wrapper <div> and apply the effects to it instead.
+            if (voidElements.includes(targetElement.tagName)) {
+                const wrapper = document.createElement('div');
+                // Make the wrapper mimic the display style of the image for layout purposes
+                wrapper.style.display = window.getComputedStyle(targetElement).display;
+                // Place the wrapper where the image was
+                targetElement.parentNode.insertBefore(wrapper, targetElement);
+                // Move the image inside the new wrapper
+                wrapper.appendChild(targetElement);
+                // The wrapper is now the container for our effects
+                container = wrapper;
             }
 
             if (container.dataset.videoHoverApplied) return;
@@ -66,14 +102,13 @@ if (typeof window.videoHoverManual === 'undefined') {
 
             injectStyles();
             
-            // Ensure the container can be a positioning context
+            // The container must have a non-static position for the absolute overlay to work
             const position = window.getComputedStyle(container).position;
             if (position === 'static') {
                 container.style.position = 'relative';
             }
             
-            // Apply the class to the container, which will control the hover effect.
-            container.classList.add('manual-enhanced-element');
+            container.classList.add('video-hover-enhanced');
 
             const video = document.createElement('video');
             video.className = 'video-overlay';
@@ -83,21 +118,34 @@ if (typeof window.videoHoverManual === 'undefined') {
             video.playsInline = true;
             video.preload = 'auto';
             
-            // Match the border radius of the image for the video overlay
-            video.style.borderRadius = getComputedStyle(targetElement).borderRadius;
-
-            // Append the video to the existing container.
+            video.style.borderRadius = window.getComputedStyle(originalElement).borderRadius;
             container.appendChild(video);
 
-            // Attach listeners to the container.
             container.addEventListener('mouseenter', () => {
-                video.play().catch(e => console.warn("Video play was prevented, but hover should still work.", e));
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        if (error.name !== 'AbortError') {
+                            console.error("Video hover playback failed:", error);
+                        }
+                    });
+                }
             });
 
             container.addEventListener('mouseleave', () => {
                 video.pause();
                 video.currentTime = 0;
             });
+
+            if (shouldSave) {
+                const selector = getSelector(originalElement);
+                const pageUrl = window.location.href.split('?')[0].split('#')[0];
+                chrome.storage.local.get([pageUrl], (result) => {
+                    const effects = result[pageUrl] || [];
+                    effects.push({ selector, videoUrl });
+                    chrome.storage.local.set({ [pageUrl]: effects });
+                });
+            }
         }
         
         /**
@@ -106,11 +154,11 @@ if (typeof window.videoHoverManual === 'undefined') {
         function startSelection(onSelect) {
             const selectorOverlay = document.createElement('div');
             Object.assign(selectorOverlay.style, { 
-                position: 'absolute', 
+                position: 'absolute',
                 border: '2px dashed #007bff', 
                 backgroundColor: 'rgba(0, 123, 255, 0.25)', 
                 borderRadius: '4px', 
-                zIndex: '999999', 
+                zIndex: '99999999', 
                 pointerEvents: 'none', 
                 transition: 'all 0.1s ease' 
             });
@@ -131,6 +179,7 @@ if (typeof window.videoHoverManual === 'undefined') {
             const handleClick = e => {
                 e.preventDefault(); 
                 e.stopPropagation();
+                document.body.style.cursor = 'default';
                 document.body.removeChild(selectorOverlay);
                 document.removeEventListener('mouseover', handleMouseOver);
                 document.removeEventListener('click', handleClick, true);
@@ -138,7 +187,8 @@ if (typeof window.videoHoverManual === 'undefined') {
                     onSelect(currentTarget);
                 }
             };
-
+            
+            document.body.style.cursor = 'crosshair';
             document.addEventListener('mouseover', handleMouseOver);
             document.addEventListener('click', handleClick, { capture: true, once: true });
         }
@@ -147,8 +197,22 @@ if (typeof window.videoHoverManual === 'undefined') {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (message.action === 'startSelection') {
                 startSelection(selectedElement => {
-                    applyHoverVideo(selectedElement, message.url);
+                    applyHoverVideo(selectedElement, message.url, true);
                 });
+                sendResponse({ status: 'selection_started' });
+            } else if (message.action === 'applySavedEffects') {
+                const effects = message.effects || [];
+                effects.forEach(effect => {
+                    try {
+                        const element = document.querySelector(effect.selector);
+                        if (element) {
+                            applyHoverVideo(element, effect.videoUrl, false);
+                        }
+                    } catch (e) {
+                        console.error("Video Hover: Failed to apply saved effect:", e);
+                    }
+                });
+                sendResponse({ status: 'effects_applied' });
             }
             return true;
         });
