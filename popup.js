@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const videoUrlInput = document.getElementById('videoUrlInput');
     const selectElementBtn = document.getElementById('selectElementBtn');
-    const autoScanBtn = document.getElementById('autoScanBtn');
+    const applyPopupBtn = document.getElementById('applyPopupBtn');
     const videoThumbs = document.querySelectorAll('.video-thumb');
 
     let selectedVideoUrl = '';
@@ -10,9 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedVideoUrl = videoThumbs[0].dataset.videoUrl;
         videoUrlInput.value = selectedVideoUrl;
         videoThumbs[0].classList.add('selected');
-    } else {
-        console.warn('No video thumbnails found in popup.');
-        videoUrlInput.value = '';
     }
 
     videoThumbs.forEach(thumb => {
@@ -24,8 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // This function now accepts a callback
-    // which will be executed only after the message is successfully handled.
     async function injectAndSendMessage(message, onComplete) {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab && tab.url && !tab.url.startsWith("chrome://")) {
@@ -40,18 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 chrome.tabs.sendMessage(tab.id, message, (response) => {
-                    // This callback now waits for sendResponse() from the content script.
                     if (chrome.runtime.lastError) {
                         console.warn("Message response error:", chrome.runtime.lastError.message);
                     }
-                    // Once we get a response, we run the onComplete function.
                     if (onComplete) {
                         onComplete();
                     }
                 });
             });
         } else {
-            alert('This extension cannot be used on this page (e.g., chrome:// URLs).');
+            alert('This extension cannot be used on this page.');
         }
     }
 
@@ -61,14 +54,19 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please select a video or paste a URL first.');
             return;
         }
-        // We now pass a function to close the window,
-        // ensuring it only happens *after* the message is sent and acknowledged.
-        injectAndSendMessage({ action: 'startSelection', url: url }, () => {
+        injectAndSendMessage({ action: 'applyHoverEffect', url: url }, () => {
             window.close();
         });
     });
 
-    autoScanBtn.addEventListener('click', () => {
-        alert('Auto-scan feature coming soon!');
+    applyPopupBtn.addEventListener('click', () => {
+        const url = videoUrlInput.value || selectedVideoUrl;
+        if (!url) {
+            alert('Please select a video or paste a URL first.');
+            return;
+        }
+        injectAndSendMessage({ action: 'applyClickPopup', url: url }, () => {
+            window.close();
+        });
     });
 });
