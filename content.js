@@ -8,55 +8,68 @@ if (typeof window.videoEffectsInjected === 'undefined') {
             const style = document.createElement('style');
             style.id = styleId;
             style.innerHTML = `
-                /* Hover effect styles */
-                .video-hover-enhanced { position: relative; overflow: hidden; cursor: pointer; }
-                .video-hover-enhanced .video-overlay { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0; pointer-events: none; transition: opacity 0.4s ease-in-out; z-index: 1; }
-                .video-hover-enhanced:hover .video-overlay { opacity: 1; }
+                /* --- STYLES FOR FEATURE 1: In-Place Hover Effect --- */
+                .video-hover-container { position: relative; overflow: hidden; cursor: pointer; }
+                .video-hover-container .video-overlay { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0; pointer-events: none; transition: opacity 0.4s ease-in-out; z-index: 1; }
+                .video-hover-container:hover .video-overlay { opacity: 1; }
 
-                /* ✅ MODIFIED: CSS for the new "cube" icon */
-                .hover-effect-icon {
+                /* --- STYLES FOR FEATURE 2: Pop-Out Preview Effect --- */
+                .video-popup-container { position: relative; cursor: pointer; }
+                .video-preview-popup {
+                    position: absolute;
+                    width: 320px;
+                    height: 180px;
+                    bottom: 105%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 10;
+                    opacity: 0;
+                    transition: opacity 0.3s ease, bottom 0.3s ease;
+                    pointer-events: none;
+                    background: #000;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+                    overflow: hidden;
+                }
+                .video-popup-container:hover .video-preview-popup {
+                    opacity: 1;
+                    bottom: 110%;
+                }
+                .video-preview-popup video { width: 100%; height: 100%; }
+                
+                /* ✅ UNIFIED ICON STYLE: Both features will use this small, top-left icon */
+                .top-left-icon {
                     position: absolute;
                     top: 15px;
                     left: 15px;
-                    width: 30px; /* Equal width */
-                    height: 30px; /* Equal height */
-                    z-index: 2;
+                    width: 30px;
+                    height: 30px;
+                    z-index: 5;
                     pointer-events: none;
                     background-color: rgba(0, 0, 0, 0.6);
-                    border-radius: 4px; /* Slightly rounded corners for a "soft cube" look */
+                    border-radius: 4px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                 }
-                .hover-effect-icon svg {
-                    width: 60%;
-                    height: 60%;
-                }
-
-                /* Styles for popup feature (unchanged) */
-                .video-popup-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; z-index: 5; cursor: pointer; transition: transform 0.2s ease; }
-                .video-popup-icon:hover { transform: translate(-50%, -50%) scale(1.1); }
-                .video-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 9999999; justify-content: center; align-items: center; }
-                .video-modal-content { position: relative; width: 90%; max-width: 800px; max-height: 90vh; background-color: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-                .video-modal-content video { display: block; width: 100%; max-height: 90vh; }
-                .video-modal-close { position: absolute; top: -40px; right: 0px; font-size: 40px; color: #fff; cursor: pointer; line-height: 1; }
+                .top-left-icon svg { width: 60%; height: 60%; }
             `;
             document.head.appendChild(style);
         },
 
+        /**
+         * ✅ FEATURE 2: Pop-out Preview on Hover
+         * Adds a small icon and makes a small video POP OUT when you hover the element.
+         */
         applyClickPopup: function(targetElement, videoUrl) {
-            // This function is unchanged
             this.injectStyles();
             const isDirectVideoLink = /\.(mp4|webm|ogg)(\?.*)?$/i.test(videoUrl);
-            if (!isDirectVideoLink) {
-                alert('Invalid URL for Popup. Please use a direct video link (.mp4, .webm, .ogg).');
-                return;
-            }
+            if (!isDirectVideoLink) { alert('Invalid URL. Please use a direct video link.'); return; }
+
             const voidElements = ['IMG', 'INPUT', 'VIDEO', 'IFRAME'];
             let container = targetElement;
-            if (voidElements.includes(targetElement.tagName) || targetElement.closest('.video-popup-icon-wrapper')) {
+            if (voidElements.includes(targetElement.tagName)) {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'video-popup-icon-wrapper';
                 wrapper.style.display = window.getComputedStyle(targetElement).display;
                 wrapper.style.position = 'relative';
                 targetElement.parentNode.insertBefore(wrapper, targetElement);
@@ -66,38 +79,47 @@ if (typeof window.videoEffectsInjected === 'undefined') {
             if(container.dataset.popupApplied) return;
             container.dataset.popupApplied = 'true';
             if (window.getComputedStyle(container).position === 'static') container.style.position = 'relative';
-            const icon = document.createElement('img');
-            icon.className = 'video-popup-icon';
-            icon.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI0ZGRiI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEycy00LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNC41di05bDYgNC41LTYgNC41eiIvPjwvc3ZnPg==';
+            container.classList.add('video-popup-container');
+
+            // 1. Create the small, top-left icon
+            const icon = document.createElement('div');
+            icon.className = 'top-left-icon';
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
+            
+            // 2. Create the small pop-out preview window
+            const previewPopup = document.createElement('div');
+            previewPopup.className = 'video-preview-popup';
+            const previewVideo = document.createElement('video');
+            previewVideo.src = videoUrl;
+            previewVideo.muted = true;
+            previewVideo.loop = true;
+            previewVideo.playsInline = true;
+
+            previewPopup.appendChild(previewVideo);
             container.appendChild(icon);
-            const modalOverlay = document.createElement('div');
-            modalOverlay.className = 'video-modal-overlay';
-            const modalContent = document.createElement('div');
-            modalContent.className = 'video-modal-content';
-            const modalVideo = document.createElement('video');
-            modalVideo.src = videoUrl;
-            modalVideo.controls = true;
-            const closeModalBtn = document.createElement('span');
-            closeModalBtn.className = 'video-modal-close';
-            closeModalBtn.innerHTML = '&times;';
-            modalContent.appendChild(closeModalBtn);
-            modalContent.appendChild(modalVideo);
-            modalOverlay.appendChild(modalContent);
-            document.body.appendChild(modalOverlay);
-            const openModal = () => { modalOverlay.style.display = 'flex'; modalVideo.play(); };
-            const closeModal = () => { modalVideo.pause(); modalOverlay.style.display = 'none'; };
-            icon.addEventListener('click', e => { e.stopPropagation(); openModal(); });
-            closeModalBtn.addEventListener('click', closeModal);
-            modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+            container.appendChild(previewPopup);
+
+            // 3. Add listeners to the CONTAINER to play/pause the preview
+            container.addEventListener('mouseenter', () => {
+                previewVideo.load();
+                const playPromise = previewVideo.play();
+                if (playPromise !== undefined) playPromise.catch(error => { if (error.name !== 'AbortError') console.error("Preview playback failed:", error); });
+            });
+            container.addEventListener('mouseleave', () => {
+                previewVideo.pause();
+                previewVideo.load();
+            });
         },
 
+        /**
+         * ✅ FEATURE 1: In-Place Video on Hover
+         * Adds a small icon and plays the video IN-PLACE when you hover the element.
+         */
         applyHoverEffect: function(targetElement, videoUrl) {
             this.injectStyles();
             const isDirectVideoLink = /\.(mp4|webm|ogg)(\?.*)?$/i.test(videoUrl);
-            if (!isDirectVideoLink) {
-                alert('Invalid URL for Hover. Please use a direct video link (.mp4, .webm, .ogg).');
-                return;
-            }
+            if (!isDirectVideoLink) { alert('Invalid URL. Please use a direct video link.'); return; }
+
             const voidElements = ['IMG', 'INPUT', 'VIDEO', 'IFRAME'];
             let container = targetElement;
             if (voidElements.includes(targetElement.tagName)) {
@@ -111,8 +133,9 @@ if (typeof window.videoEffectsInjected === 'undefined') {
             if (container.dataset.hoverApplied) return;
             container.dataset.hoverApplied = 'true';
             if (window.getComputedStyle(container).position === 'static') container.style.position = 'relative';
-            container.classList.add('video-hover-enhanced');
+            container.classList.add('video-hover-container');
             
+            // 1. Create the in-place video overlay
             const video = document.createElement('video');
             video.className = 'video-overlay';
             video.src = videoUrl;
@@ -121,15 +144,17 @@ if (typeof window.videoEffectsInjected === 'undefined') {
             video.playsInline = true;
             video.preload = 'auto';
             video.style.borderRadius = window.getComputedStyle(targetElement).borderRadius;
-            container.appendChild(video);
-
-            // ✅ MODIFIED: The icon is now a <div> with an <svg> inside for perfect centering.
+            
+            // 2. Create the small, top-left icon
             const icon = document.createElement('div');
-            icon.className = 'hover-effect-icon';
+            icon.className = 'top-left-icon';
             icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
+            
+            container.appendChild(video);
             container.appendChild(icon);
 
-            container.addEventListener('mouseenter', () => { video.load(); const playPromise = video.play(); if (playPromise !== undefined) playPromise.catch(error => { if (error.name !== 'AbortError') console.error("Video hover playback failed:", error); }); });
+            // 3. Add listeners to the CONTAINER to play/pause the in-place video
+            container.addEventListener('mouseenter', () => { video.load(); const playPromise = video.play(); if (playPromise !== undefined) playPromise.catch(error => { if (error.name !== 'AbortError') console.error("Hover playback failed:", error); }); });
             container.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; video.load(); });
         },
 
